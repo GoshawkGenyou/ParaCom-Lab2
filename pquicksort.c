@@ -4,7 +4,8 @@
 #include <sys/time.h>
 #include <omp.h>
 #define DEBUG 1
-#define SIZE 150000
+#define SIZE 1000000
+#define THREADS 12
 #define PART 5000
 
 int swap(int *a, int *b) {
@@ -80,10 +81,10 @@ void parallelQuickSort(int *arr, int low, int high) {
         int pi = partition(arr, low, high);
         //printf("low: %d, high: %d, pi: %d\n", low, high, pi);
   		if (high - low > PART) {
-            #pragma omp task shared(arr)
+            #pragma omp task
             parallelQuickSort(arr, low, pi - 1);
             
-            #pragma omp task shared(arr)
+            #pragma omp task
             parallelQuickSort(arr, pi + 1, high);
             
             #pragma omp taskwait // Wait for tasks to complete
@@ -94,6 +95,14 @@ void parallelQuickSort(int *arr, int low, int high) {
         }
     }
 }
+
+int verify_array(int *arr) {
+	for (int i = 0; i < SIZE; i++) {
+		if (i != arr[i]) { return 0; }
+	}
+	return 1;
+}
+
 
 void runParallel(int *arr, int n) {
 	// low to high
@@ -112,8 +121,11 @@ void runParallel(int *arr, int n) {
 	gettimeofday(&end, NULL); // End timing
 	elapsed_time = (end.tv_sec - start.tv_sec) + 
 	                      (end.tv_usec - start.tv_usec) / 1e6;
+	printf("Sorted Array Verify:\n");
 	printArr(arr);
 	printf("Parallel executed in %.6fs\n", elapsed_time);
+	if (!verify_array(arr)) { printf("Error! The array is not sorted!"); }
+	else printf("Sorted!\n");
 }
 
 void runNormal(int *arr, int n) {
@@ -125,6 +137,8 @@ void runNormal(int *arr, int n) {
 	elapsed_time = (end.tv_sec - start.tv_sec) + 
 	                      (end.tv_usec - start.tv_usec) / 1e6;
 	printf("Normal executed in %.6fs\n", elapsed_time);
+	if (!verify_array(arr)) { printf("Error! The array is not sorted!"); }
+	else printf("Sorted!\n");
 }
 
 int generate_arrays(int *arr1, int *arr2, int n) {
@@ -137,6 +151,7 @@ int generate_arrays(int *arr1, int *arr2, int n) {
 	}
 	return 0;
 }
+
 
 // Main function to execute QuickSort
 int main() {
@@ -164,7 +179,9 @@ int main() {
 		    return -1;
 		}    	
 		generate_arrays(arr1, arr2, n);
+		printf("Array 1:\n");
 		printArr(arr1);
+		printf("Array 2:\n");
 		printArr(arr2);
     }
     
